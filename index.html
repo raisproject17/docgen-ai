@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DocGen·AI — Auto-generation PRD / Workflow / Audit</title>
+<style>
+  :root{
+    --bg:#0a0e17; --bg2:#0f1522; --panel:#131b2c; --panel2:#182236;
+    --line:#22304a; --txt:#e6ecf7; --mut:#8b9bb8; --acc:#4f8cff;
+    --acc2:#7c5cff; --ok:#34d399; --warn:#fbbf24; --bad:#f87171;
+    --radius:14px; --mono:ui-monospace,"SF Mono","Cascadia Code",Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(1200px 600px at 80% -10%,#16223a 0%,var(--bg) 55%);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;min-height:100vh}
+  .wrap{max-width:1180px;margin:0 auto;padding:26px 20px 60px}
+
+  /* header */
+  .top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--acc),var(--acc2));
+    display:grid;place-items:center;font-weight:800;font-size:18px;box-shadow:0 6px 20px rgba(79,140,255,.35)}
+  .brand h1{font-size:20px;letter-spacing:.3px}
+  .brand p{font-size:12.5px;color:var(--mut);margin-top:2px}
+  .pill{font-size:11.5px;color:var(--mut);border:1px solid var(--line);padding:5px 11px;border-radius:999px;background:var(--panel)}
+  .pill b{color:var(--acc);font-weight:600}
+
+  /* layout */
+  .grid{display:grid;grid-template-columns:420px 1fr;gap:18px;align-items:start}
+  @media(max-width:960px){.grid{grid-template-columns:1fr}}
+
+  /* panels */
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+  .panel h2{font-size:13px;text-transform:uppercase;letter-spacing:1.2px;color:var(--mut);margin-bottom:14px;font-weight:700}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12.5px;font-weight:600;color:var(--txt);margin-bottom:6px}
+  .field .hint{font-size:11px;color:var(--mut);margin-top:5px;line-height:1.4}
+  textarea,input[type=text],select{
+    width:100%;background:var(--bg2);border:1px solid var(--line);color:var(--txt);
+    border-radius:10px;padding:11px 12px;font-size:14px;font-family:inherit;transition:border .15s, box-shadow .15s;
+  }
+  textarea:focus,input:focus,select:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(79,140,255,.18)}
+  textarea{resize:vertical;min-height:90px;line-height:1.5}
+  textarea.idea{min-height:120px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+  /* provider switcher */
+  .prov{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+  .prov button{border:1px solid var(--line);background:var(--panel2);color:var(--mut);border-radius:10px;
+    padding:10px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit}
+  .prov button.active{border-color:var(--acc);color:var(--txt);background:rgba(79,140,255,.12)}
+  .prov button span{display:block;font-size:10.5px;font-weight:400;color:var(--mut);margin-top:2px}
+  .oa{display:none}
+  .oa.show{display:block}
+  .preset{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .preset button{font-size:11px;padding:4px 9px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--mut);cursor:pointer;font-family:inherit}
+  .preset button:hover{color:var(--txt);border-color:var(--acc)}
+
+  /* primary button */
+  .btn{width:100%;padding:13px;border:none;border-radius:11px;font-size:14.5px;font-weight:700;cursor:pointer;
+    background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-family:inherit;
+    box-shadow:0 8px 24px rgba(79,140,255,.3);transition:transform .12s, box-shadow .12s, opacity .2s}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 10px 28px rgba(79,140,255,.4)}
+  .btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+  .btn.small{width:auto;padding:8px 14px;font-size:12.5px;box-shadow:none;background:var(--panel2);border:1px solid var(--line);color:var(--txt)}
+  .btn.small:hover{border-color:var(--acc)}
+
+  /* tabs */
+  .tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:12px}
+  .tab{border:none;background:transparent;color:var(--mut);font-size:13.5px;font-weight:600;cursor:pointer;
+    padding:8px 14px;border-radius:10px;transition:all .15s;font-family:inherit}
+  .tab:hover{color:var(--txt);background:var(--panel2)}
+  .tab.active{background:rgba(79,140,255,.14);color:var(--acc)}
+  .tab .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--warn);margin-left:7px;vertical-align:middle}
+  .tab .dot.done{background:var(--ok)}
+
+  /* output */
+  .out{min-height:320px;position:relative}
+  .outbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+  .out-tools{display:flex;gap:6px}
+  .md{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:18px 20px;
+    font-size:14px;line-height:1.65;overflow-wrap:break-word;white-space:pre-wrap}
+  .md h1,.md h2,.md h3{margin:16px 0 8px;line-height:1.3}
+  .md h1{font-size:19px;color:var(--acc)}
+  .md h2{font-size:16px;color:var(--txt);padding-bottom:6px;border-bottom:1px solid var(--line)}
+  .md h3{font-size:14px;color:var(--acc)}
+  .md ul,.md ol{padding-left:20px;margin:8px 0}
+  .md li{margin:3px 0}
+  .md code{background:rgba(255,255,255,.06);padding:1.5px 6px;border-radius:6px;font-family:var(--mono);font-size:12.5px}
+  .md pre{background:#0b101b;border:1px solid var(--line);border-radius:10px;padding:12px;overflow-x:auto;margin:10px 0}
+  .md pre code{background:transparent;padding:0}
+  .md strong{color:#fff}
+  .md hr{border:none;border-top:1px solid var(--line);margin:16px 0}
+  .md blockquote{border-left:3px solid var(--acc);padding:4px 12px;color:var(--mut);margin:10px 0}
+
+  .empty{color:var(--mut);text-align:center;padding:70px 20px;font-size:14px;line-height:1.7}
+  .empty .ico{font-size:34px;display:block;margin-bottom:12px}
+
+  /* loading */
+  .loading{display:none;text-align:center;padding:60px 20px;color:var(--mut)}
+  .loading.show{display:block}
+  .spinner{width:40px;height:40px;border:3px solid var(--line);border-top-color:var(--acc);border-radius:50%;
+    margin:0 auto 16px;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading .step{font-size:12px;margin-top:8px;color:var(--mut)}
+
+  /* status / error */
+  .err{display:none;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.4);color:var(--bad);
+    border-radius:10px;padding:12px 14px;font-size:13px;margin-top:12px;font-family:var(--mono);white-space:pre-wrap}
+  .err.show{display:block}
+
+  .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .meta span{font-size:11px;color:var(--mut);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:4px 9px}
+  .meta b{color:var(--acc)}
+
+  .foot{text-align:center;color:var(--mut);font-size:12px;margin-top:34px;line-height:1.6}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--panel2);
+    border:1px solid var(--line);padding:10px 18px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;
+    transition:all .25s;box-shadow:0 8px 30px rgba(0,0,0,.4);z-index:50}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <div class="logo">DG</div>
+      <div><h1>DocGen·AI</h1><p>Auto-generate PRD · Workflow · Saran · Audit</p></div>
+    </div>
+    <div class="pill">Backend: <b id="beLabel">OpenAI-compatible</b></div>
+  </div>
+
+  <div class="grid">
+    <!-- LEFT: input -->
+    <div class="panel">
+      <h2>Input Produk</h2>
+
+      <div class="field">
+        <label>Ide / Produk *</label>
+        <textarea id="idea" class="idea" placeholder="Contoh: platform booking jasa maintenance komputer on-demand dengan sistem rating teknisi..."></textarea>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>Target User / Market</label>
+          <input type="text" id="target" placeholder="mis. UMKM di Jabodetabek">
+        </div>
+        <div class="field">
+          <label>Requirement Asli (opsional)</label>
+          <input type="text" id="req" placeholder="mis. harus ada payment, tracking, notif">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Konteks Tambahan</label>
+        <textarea id="extra" placeholder="Batasan, budget, deadline, platform, kompetitor, dll..."></textarea>
+      </div>
+
+      <div class="field">
+        <label>Provider LLM</label>
+        <div class="prov">
+          <button id="pHermes" onclick="setProv('hermes')">Hermes<span>lokal · hanya saat run Flask lokal</span></button>
+          <button id="pOpenai" class="active" onclick="setProv('openai')">OpenAI-compatible<span>OpenRouter / 9ROUTER dll</span></button>
+        </div>
+      </div>
+
+      <div class="oa show" id="oaBox">
+        <div class="field">
+          <label>Base URL (tanpa /chat/completions)</label>
+          <input type="text" id="baseUrl" placeholder="https://openrouter.ai/api/v1">
+        </div>
+        <div class="field">
+          <label>Model</label>
+          <input type="text" id="model" placeholder="mis. openai/gpt-4o-mini">
+        </div>
+        <div class="field">
+          <label>API Key</label>
+          <input type="password" id="apiKey" placeholder="sk-... (disimpan sementara di browser)">
+        </div>
+      </div>
+
+      <button class="btn" id="genBtn" onclick="generate()">Generate Dokumen ➜</button>
+      <div class="hint" style="font-size:11.5px;color:var(--mut);margin-top:10px;text-align:center">
+        Pilih tab di kanan dulu — tombol mengisi tab yang aktif
+      </div>
+    </div>
+
+    <!-- RIGHT: tabs + output -->
+    <div class="panel">
+      <div class="tabs">
+        <button class="tab active" data-t="prd" onclick="setTab('prd')">PRD</button>
+        <button class="tab" data-t="workflow" onclick="setTab('workflow')">Workflow</button>
+        <button class="tab" data-t="suggestions" onclick="setTab('suggestions')">Saran</button>
+        <button class="tab" data-t="audit" onclick="setTab('audit')">Auto-Audit <span class="dot" id="auditDot"></span></button>
+      </div>
+
+      <div class="out">
+        <div class="outbar">
+          <div class="meta" id="meta"></div>
+          <div class="out-tools">
+            <button class="btn small" onclick="copyOut()">Salin</button>
+            <button class="btn small" onclick="downloadOut()">⬇ .md</button>
+          </div>
+        </div>
+
+        <div id="loading" class="loading">
+          <div class="spinner"></div>
+          <div>Menghasilkan...</div>
+          <div class="step" id="loadStep">backend Hermes · bisa 10–60s</div>
+        </div>
+
+        <div id="empty" class="empty">
+          <span class="ico">📄</span>
+          Pilih tab dan klik <b>Generate Dokumen</b>. Hasil muncul di sini.
+        </div>
+
+        <div id="md" class="md" style="display:none"></div>
+
+        <div id="err" class="err"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">DocGen·AI — backend local Hermes atau OpenAI-compatible.<br>Dokumen tersimpan di browser; klik ⬇ untuk simpan ke disk.</div>
+</div>
+
+<div class="toast" id="toast">Disalin ✓</div>
+
+<script>
+// ---------- state ----------
+const docs = { prd:"", workflow:"", suggestions:"", audit:"" };
+const meta = { prd:"", workflow:"", suggestions:"", audit:"" };
+let currentTab = "prd";
+let provider = "openai";
+
+// restore openai creds from localStorage
+const lsKey = "docgen_oa_v1";
+window.addEventListener("DOMContentLoaded", ()=>{
+  try{
+    const s = JSON.parse(localStorage.getItem(lsKey)||"{}");
+    if(s.baseUrl) document.getElementById("baseUrl").value = s.baseUrl;
+    if(s.model) document.getElementById("model").value = s.model;
+  }catch(e){}
+  document.getElementById("idea").focus();
+});
+
+// ---------- provider ----------
+function setProv(p){
+  provider = p;
+  document.getElementById("pHermes").classList.toggle("active", p==="hermes");
+  document.getElementById("pOpenai").classList.toggle("active", p==="openai");
+  document.getElementById("oaBox").classList.toggle("show", p==="openai");
+  document.getElementById("beLabel").textContent = p==="hermes" ? "Hermes (lokal)" : "OpenAI-compatible";
+}
+
+// ---------- tabs ----------
+function setTab(t){
+  currentTab = t;
+  document.querySelectorAll(".tab").forEach(b=> b.classList.toggle("active", b.dataset.t===t));
+  renderOutput();
+}
+function renderOutput(){
+  const content = docs[currentTab];
+  const empty = document.getElementById("empty"), md = document.getElementById("md");
+  if(content){
+    empty.style.display="none"; md.style.display="block";
+    md.innerHTML = renderMD(content);
+  }else{
+    md.style.display="none"; empty.style.display="block";
+  }
+  const m = meta[currentTab];
+  document.getElementById("meta").innerHTML = m ? m : "";
+  // audit dot
+  const dot = document.getElementById("auditDot");
+  if(docs.audit){ dot.classList.add("done"); dot.style.background="var(--ok)"; }
+}
+
+// ---------- generate ----------
+async function generate(){
+  const idea = document.getElementById("idea").value.trim();
+  if(!idea){ toast("Isi Ide/Produk dulu"); return; }
+  const tab = currentTab;
+  const t = document.getElementById("md");
+  document.getElementById("err").classList.remove("show");
+  document.getElementById("loading").classList.add("show");
+  document.getElementById("empty").style.display="none";
+  t.style.display="none";
+  document.getElementById("genBtn").disabled = true;
+  document.getElementById("loadStep").textContent =
+    provider==="hermes" ? "backend Hermes · bisa 10–60s" : "backend OpenAI-compatible · tunggu respons...";
+
+  const body = {
+    doc_type: tab,
+    provider,
+    idea,
+    target: document.getElementById("target").value.trim(),
+    req: document.getElementById("req").value.trim(),
+    extra: document.getElementById("extra").value.trim(),
+    prd: docs.prd, workflow: docs.workflow, suggestions: docs.suggestions,
+  };
+  if(provider==="openai"){
+    body.base_url = document.getElementById("baseUrl").value.trim();
+    body.api_key = document.getElementById("apiKey").value.trim();
+    body.model = document.getElementById("model").value.trim();
+    // persist creds
+    localStorage.setItem(lsKey, JSON.stringify({baseUrl:body.base_url, model:body.model}));
+  }else{
+    body.model = "";
+  }
+
+  try{
+    const res = await fetch("/api/generate", {
+      method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if(!res.ok || !data.ok){ throw new Error(data.error || "Gagal generate"); }
+    docs[tab] = data.content;
+    const modelTxt = provider==="hermes" ? "Hermes (lokal)" : (body.model || "?");
+    const providerTxt = provider==="hermes" ? "hermes" : "openai";
+    meta[tab] = `<span>${tab}</span><span>Model: <b>${modelTxt}</b></span><span>Provider: <b>${providerTxt}</b></span>`;
+    renderOutput();
+    toast("Selesai ✓");
+  }catch(e){
+    document.getElementById("err").textContent = "Error: "+e.message;
+    document.getElementById("err").classList.add("show");
+  }finally{
+    document.getElementById("loading").classList.remove("show");
+    document.getElementById("genBtn").disabled = false;
+  }
+}
+
+// ---------- markdown (mini renderer) ----------
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function renderMD(src){
+  let s = esc(src).replace(/\r\n/g,"\n");
+  // code blocks first
+  s = s.replace(/```(\w*)\n([\s\S]*?)```/g, (m,lang,code)=>`<pre><code>${code.trim()}</code></pre>`);
+  // images/links: links only
+  s = s.replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:var(--acc)">$1</a>');
+  // headings
+  s = s.replace(/^### (.*)$/gm, '<h3>$1</h3>');
+  s = s.replace(/^## (.*)$/gm, '<h2>$1</h2>');
+  s = s.replace(/^# (.*)$/gm, '<h1>$1</h1>');
+  // hr
+  s = s.replace(/^---\s*$/gm, '<hr>');
+  // unordered list
+  s = s.replace(/^\s*[-*+] (.*)$/gm, '<li>$1</li>');
+  // ordered list
+  s = s.replace(/^\s*\d+\. (.*)$/gm, '<li>$1</li>');
+  // wrap lists
+  s = s.replace(/(<li>[\s\S]*?<\/li>)(\n<li>[\s\S]*?<\/li>)*/gm, m=>'<ul>'+m+'</ul>');
+  // strong / italic / code
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>');
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // paragraphs
+  s = s.replace(/\n{2,}/g, '</p><p>');
+  s = '<p>'+s+'</p>';
+  // fix nested p around blocks
+  s = s.replace(/<p>(<h[1-3]>)/g, '$1').replace(/(<\/h[1-3]>)<\/p>/g, '$1');
+  s = s.replace(/<p>(<ul>)/g, '$1').replace(/(<\/ul>)<\/p>/g, '$1');
+  s = s.replace(/<p>(<pre>)/g, '$1').replace(/(<\/pre>)<\/p>/g, '$1');
+  s = s.replace(/<p>(<hr>)/g, '$1').replace(/(<\/hr>)<\/p>/g, '$1');
+  s = s.replace(/<p>\s*<\/p>/g, '');
+  return s;
+}
+
+// ---------- actions ----------
+function copyOut(){
+  if(!docs[currentTab]){ toast("Belum ada isi"); return; }
+  navigator.clipboard.writeText(docs[currentTab]).then(()=>toast("Disalin ✓"));
+}
+function downloadOut(){
+  if(!docs[currentTab]){ toast("Belum ada isi"); return; }
+  const blob = new Blob([docs[currentTab]], {type:"text/markdown;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `docgen_${currentTab}.md`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast("File diunduh ✓");
+}
+let toastTimer;
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove("show"), 1800);
+}
+</script>
+</body>
+</html>
