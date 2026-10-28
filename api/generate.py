@@ -7,11 +7,14 @@ e.g. 9Router / OpenRouter) works. The original Flask app (app.py) still
 supports both providers when run locally.
 """
 import json
+import os
 import urllib.request
 import urllib.error
 from http.server import BaseHTTPRequestHandler
 
 DOCTYPES = {"prd", "workflow", "suggestions", "audit"}
+NINE_BASE = "https://aws.jarvisrais.my.id/v1"
+NINE_MODELS = ("mangoboost", "ilabs", "gonka", "gonka-ds", "okai")
 
 SYSTEM = (
     "Kamu adalah CTO/Product consultant yang membangun dokumen produk tingkat"
@@ -106,12 +109,17 @@ def run_openai(base_url, api_key, model, prompt):
     req = urllib.request.Request(
         base_url.rstrip("/") + "/chat/completions",
         data=body,
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json", "User-Agent": "Mozilla/5.0"},
         method="POST",
     )
     try:
         with urllib.request.urlopen(req, timeout=50) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
+            text = resp.read().decode("utf-8")
+            # 9Router non-stream responses append an SSE trailer "data: [DONE]"
+            # after the JSON body; strip it before parsing.
+            if "data: [DONE]" in text:
+                text = text.split("data: [DONE]")[0].strip()
+            data = json.loads(text)
     except urllib.error.HTTPError as e:
         detail = e.read().decode("utf-8", "replace")[:500]
         raise RuntimeError(f"Provider error {e.code}: {detail}")
@@ -145,14 +153,24 @@ class handler(BaseHTTPRequestHandler):
             self._send(400, {"error": "idea wajib diisi"})
             return
         provider = data.get("provider", "openai")
-        if provider != "openai":
-            self._send(400, {"error": "Di Vercel provider hermes tidak tersedia (butuh binary hermes lokal). Pakai provider OpenAI-compatible."})
-            return
-        base_url = (data.get("base_url") or "").strip()
-        api_key = (data.get("api_key") or "").strip()
-        model = (data.get("model") or "").strip()
-        if not base_url or not api_key or not model:
-            self._send(400, {"error": "Provider openai butuh base_url, api_key, dan model"})
+        if provider == "9router":
+            # Full auto: key lives only as a Vercel env var, never in the repo
+            # or the browser. Model comes from the UI dropdown, default mangoboost.
+            base_url = NINE_BASE
+            api_key = os.environ.get("DOCGEN_9ROUTER_API_KEY", "")
+            model = (data.get("model") or "").strip() or "mangoboost"
+            if not api_key:
+                self._send(500, {"error": "Key 9Router belum diset sebagai env var DOCGEN_9ROUTER_API_KEY di Vercel."})
+                return
+        elif provider == "openai":
+            base_url = (data.get("base_url") or "").strip()
+            api_key = (data.get("api_key") or "").strip()
+            model = (data.get("model") or "").strip()
+            if not base_url or not api_key or not model:
+                self._send(400, {"error": "Provider openai butuh base_url, api_key, dan model"})
+                return
+        else:
+            self._send(400, {"error": "Di Vercel provider hermes tidak tersedia (butuh binary hermes lokal). Pakai 9Router (auto) atau OpenAI-compatible."})
             return
         try:
             content = run_openai(base_url, api_key, model, build_prompt(doc_type, data))
