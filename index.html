@@ -128,7 +128,7 @@
       <div class="logo">DG</div>
       <div><h1>DocGen·AI</h1><p>Auto-generate PRD · Workflow · Saran · Audit</p></div>
     </div>
-    <div class="pill">Backend: <b id="beLabel">OpenAI-compatible</b></div>
+    <div class="pill">Backend: <b id="beLabel">9Router (auto)</b></div>
   </div>
 
   <div class="grid">
@@ -160,12 +160,26 @@
       <div class="field">
         <label>Provider LLM</label>
         <div class="prov">
+          <button id="pNine" class="active" onclick="setProv('nine')">9Router (auto)<span>tanpa isi key · via Vercel</span></button>
           <button id="pHermes" onclick="setProv('hermes')">Hermes<span>lokal · hanya saat run Flask lokal</span></button>
-          <button id="pOpenai" class="active" onclick="setProv('openai')">OpenAI-compatible<span>OpenRouter / 9ROUTER dll</span></button>
+          <button id="pOpenai" onclick="setProv('openai')">OpenAI-compatible<span>isi base_url + key sendiri</span></button>
         </div>
       </div>
 
-      <div class="oa show" id="oaBox">
+      <div class="oa show" id="nineBox">
+        <div class="field">
+          <label>Model 9Router</label>
+          <select id="nineModel" style="width:100%;padding:10px;border-radius:10px;background:#0f172a;color:#e2e8f0;border:1px solid #334155">
+            <option value="mangoboost" selected>mangoboost (DeepSeek)</option>
+            <option value="ilabs">ilabs (Mercury 3)</option>
+            <option value="gonka">gonka (MiniMax)</option>
+            <option value="gonka-ds">gonka-ds (DeepSeek)</option>
+            <option value="okai">okai</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="oa" id="oaBox">
         <div class="field">
           <label>Base URL (tanpa /chat/completions)</label>
           <input type="text" id="baseUrl" placeholder="https://openrouter.ai/api/v1">
@@ -222,7 +236,7 @@
     </div>
   </div>
 
-  <div class="foot">DocGen·AI — backend local Hermes atau OpenAI-compatible.<br>Dokumen tersimpan di browser; klik ⬇ untuk simpan ke disk.</div>
+  <div class="foot">DocGen·AI — 9Router (auto) di Vercel, Hermes/OpenAI-compatible tersedia juga.<br>Dokumen tersimpan di browser; klik ⬇ untuk simpan ke disk.</div>
 </div>
 
 <div class="toast" id="toast">Disalin ✓</div>
@@ -232,7 +246,7 @@
 const docs = { prd:"", workflow:"", suggestions:"", audit:"" };
 const meta = { prd:"", workflow:"", suggestions:"", audit:"" };
 let currentTab = "prd";
-let provider = "openai";
+let provider = "nine";
 
 // restore openai creds from localStorage
 const lsKey = "docgen_oa_v1";
@@ -248,10 +262,12 @@ window.addEventListener("DOMContentLoaded", ()=>{
 // ---------- provider ----------
 function setProv(p){
   provider = p;
+  document.getElementById("pNine").classList.toggle("active", p==="nine");
   document.getElementById("pHermes").classList.toggle("active", p==="hermes");
   document.getElementById("pOpenai").classList.toggle("active", p==="openai");
+  document.getElementById("nineBox").classList.toggle("show", p==="nine");
   document.getElementById("oaBox").classList.toggle("show", p==="openai");
-  document.getElementById("beLabel").textContent = p==="hermes" ? "Hermes (lokal)" : "OpenAI-compatible";
+  document.getElementById("beLabel").textContent = p==="nine" ? "9Router (auto)" : (p==="hermes" ? "Hermes (lokal)" : "OpenAI-compatible");
 }
 
 // ---------- tabs ----------
@@ -288,7 +304,7 @@ async function generate(){
   t.style.display="none";
   document.getElementById("genBtn").disabled = true;
   document.getElementById("loadStep").textContent =
-    provider==="hermes" ? "backend Hermes · bisa 10–60s" : "backend OpenAI-compatible · tunggu respons...";
+    provider==="nine" ? "backend 9Router (auto) · tunggu respons..." : (provider==="hermes" ? "backend Hermes · bisa 10–60s" : "backend OpenAI-compatible · tunggu respons...");
 
   const body = {
     doc_type: tab,
@@ -299,7 +315,10 @@ async function generate(){
     extra: document.getElementById("extra").value.trim(),
     prd: docs.prd, workflow: docs.workflow, suggestions: docs.suggestions,
   };
-  if(provider==="openai"){
+  if(provider==="nine"){
+    body.provider = "9router";
+    body.model = document.getElementById("nineModel").value || "mangoboost";
+  }else if(provider==="openai"){
     body.base_url = document.getElementById("baseUrl").value.trim();
     body.api_key = document.getElementById("apiKey").value.trim();
     body.model = document.getElementById("model").value.trim();
@@ -316,8 +335,8 @@ async function generate(){
     const data = await res.json();
     if(!res.ok || !data.ok){ throw new Error(data.error || "Gagal generate"); }
     docs[tab] = data.content;
-    const modelTxt = provider==="hermes" ? "Hermes (lokal)" : (body.model || "?");
-    const providerTxt = provider==="hermes" ? "hermes" : "openai";
+    const modelTxt = provider==="nine" ? (body.model || "mangoboost") : (provider==="hermes" ? "Hermes (lokal)" : (body.model || "?"));
+    const providerTxt = provider==="nine" ? "9router" : (provider==="hermes" ? "hermes" : "openai");
     meta[tab] = `<span>${tab}</span><span>Model: <b>${modelTxt}</b></span><span>Provider: <b>${providerTxt}</b></span>`;
     renderOutput();
     toast("Selesai ✓");
