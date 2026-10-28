@@ -7,9 +7,17 @@ Generate dokumen produk berbasis LLM.
 - Frontend: `index.html` di root (disajikan statis oleh Vercel).
 - Backend: `api/generate.py` — serverless function Python stdlib-only,
   `POST /api/generate` dengan body JSON yang sama seperti versi Flask.
-- **Di Vercel hanya provider `openai` (OpenAI-compatible) yang jalan** —
-  isi `base_url` + `api_key` + `model` di UI (mis. 9Router / OpenRouter).
-  Provider `hermes` butuh binary `hermes` lokal, jadi tidak tersedia di
+**9Router (auto) — default di Vercel:** tombol "9Router (auto)" langsung
+pakai endpoint `https://aws.jarvisrais.my.id/v1` dengan model default
+`mangoboost` (pilihan: `ilabs`, `gonka`, `gonka-ds`, `okai`). Key client
+9Router khusus DocGen (`DOCGEN`, bisa dicabut tanpa mengganggu bot) disimpan
+sebagai env var terenkripsi `DOCGEN_9ROUTER_API_KEY` di project Vercel
+(target production) — TIDAK ada di repo, TIDAK dikirim ke browser.
+Catatan: situs Vercel publik, jadi siapa pun yang membuka link bisa memakai
+kuota key ini lewat DocGen (sesuai pilihan full-auto user).
+- Provider `openai` manual tetap tersedia (isi `base_url` + `api_key` + `model`
+  sendiri, mis. OpenRouter).
+- Provider `hermes` butuh binary `hermes` lokal, jadi tidak tersedia di
   Vercel dan API akan menolaknya dengan pesan yang jelas.
 - API key dikirim per-request dari browser, TIDAK disimpan di disk/server.
 - Batas durasi function Vercel: 60 detik (timeout upstream diset 50 detik).
