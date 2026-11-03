@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DocGen·AI — Wizard PRD & Workflow</title>
+<style>
+:root{--bg:#0b1220;--panel:#111827;--line:#1f2937;--txt:#e2e8f0;--mut:#94a3b8;--acc:#38bdf8;--ok:#22c55e;--err:#f87171}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:960px;margin:0 auto;padding:24px 16px 60px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+h1{margin:4px 0;font-size:26px} p.sub{color:var(--mut);margin:0}
+.pill{border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-size:13px}
+.pill b{color:var(--acc)} a{color:var(--acc);text-decoration:none}
+.steps{display:flex;gap:8px;margin:22px 0;flex-wrap:wrap}
+.step{flex:1;min-width:110px;text-align:center;padding:10px 6px;border:1px solid var(--line);border-radius:12px;font-size:13px;color:var(--mut)}
+.step.active{border-color:var(--acc);color:var(--txt);background:#0f172a}
+.step.done{border-color:var(--ok);color:var(--ok)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px}
+label{display:block;font-size:13px;color:var(--mut);margin:14px 0 6px}
+textarea,input[type=text],select{width:100%;padding:12px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:var(--txt);font-size:15px}
+textarea{min-height:110px;resize:vertical}
+.btn{display:inline-block;background:var(--acc);color:#082f49;border:0;border-radius:12px;padding:12px 20px;font-weight:700;cursor:pointer;margin-top:16px}
+.btn.ghost{background:transparent;color:var(--txt);border:1px solid var(--line)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.small{padding:8px 14px;font-size:13px;margin:8px 8px 0 0}
+.q{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:14px}
+.q b{display:block;margin-bottom:8px}
+.q label{margin:6px 0;color:var(--txt);font-size:14px;display:flex;gap:8px;align-items:flex-start}
+.phase{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:14px}
+.phase h3{margin:0 0 10px} .feat{margin:10px 0 10px 12px;border-left:2px solid #334155;padding-left:12px}
+.feat b{display:block} .feat span{color:var(--mut);font-size:13px}
+.badge{display:inline-block;background:#052e16;color:#86efac;border-radius:999px;padding:2px 10px;font-size:12px;margin-left:8px}
+.err{display:none;background:#450a0a;border:1px solid var(--err);color:#fecaca;border-radius:12px;padding:12px;margin-top:14px}
+.err.show{display:block}
+.loading{display:none;text-align:center;padding:24px;color:var(--mut)}
+.loading.show{display:block}
+.md h1,.md h2,.md h3{margin:18px 0 8px} .md pre{background:#0f172a;padding:12px;border-radius:10px;overflow:auto}
+.md code{background:#0f172a;padding:1px 6px;border-radius:6px} .md li{margin:4px 0}
+.foot{color:var(--mut);font-size:12px;text-align:center;margin-top:24px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><h1>DocGen·AI — Wizard</h1><p class="sub">Ide → Klarifikasi → Teknologi → Peta Workflow → PRD final. Ala NgodingPakeAI, tapi gratis lewat 9Router.</p></div>
+    <div class="pill">Backend: <b>9Router (auto)</b> · <a href="index.html">← DocGen biasa</a></div>
+  </div>
+
+  <div class="steps" id="steps"></div>
+
+  <div class="panel">
+    <!-- STEP 1 -->
+    <div id="s1">
+      <h2>1. Ceritakan idemu</h2>
+      <label>Ide / Produk *</label>
+      <textarea id="idea" placeholder="Contoh: platform booking jasa maintenance komputer on-demand dengan sistem rating teknisi..."></textarea>
+      <label>Target User / Market (opsional)</label>
+      <input type="text" id="target" placeholder="mis. UMKM di Jabodetabek">
+      <label>Model 9Router</label>
+      <select id="model">
+        <option value="mangoboost" selected>mangoboost (DeepSeek)</option>
+        <option value="ilabs">ilabs (Mercury 3)</option>
+        <option value="gonka">gonka (MiniMax)</option>
+        <option value="gonka-ds">gonka-ds (DeepSeek)</option>
+        <option value="okai">okai</option>
+      </select>
+      <div><button class="btn" id="toClarify" onclick="goClarify()">Tanya Klarifikasi ➜</button></div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div id="s2" style="display:none">
+      <h2>2. Pertanyaan klarifikasi</h2>
+      <p class="sub">Jawab yang lu tahu aja. Kosongin / pilih “Tidak tahu, bantu pilihkan” juga boleh.</p>
+      <div id="questions"></div>
+      <div><button class="btn ghost" onclick="show(1)">← Kembali</button>
+      <button class="btn" onclick="show(3)">Pilih Teknologi ➜</button></div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div id="s3" style="display:none">
+      <h2>3. Pilih teknologi</h2>
+      <label>Teknologi</label>
+      <select id="tech">
+        <option value="Bantu saya pilih teknologi" selected>Bantu saya pilih teknologi</option>
+        <option>Next.js + Supabase</option>
+        <option>React + Firebase</option>
+        <option>Node.js + PostgreSQL</option>
+        <option>Laravel + MySQL</option>
+        <option>Flutter (mobile)</option>
+        <option>WordPress</option>
+      </select>
+      <label>Teknologi lain (opsional, isi ini kalau mau custom)</label>
+      <input type="text" id="techCustom" placeholder="mis. Vue + PocketBase">
+      <div><button class="btn ghost" onclick="show(2)">← Kembali</button>
+      <button class="btn" id="toWorkflow" onclick="goWorkflow()">Buat Peta Workflow ➜</button></div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div id="s4" style="display:none">
+      <h2>4. Peta workflow</h2>
+      <p class="sub">Fase implementasi dari MVP dulu, semua fitur berstatus Direncanakan.</p>
+      <div id="workflowView"></div>
+      <div><button class="btn ghost" onclick="show(3)">← Kembali</button>
+      <button class="btn" id="toPrd" onclick="goPrd()">Buat PRD Final ➜</button>
+      <button class="btn small ghost" onclick="copyWorkflow()">Salin Workflow</button></div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div id="s5" style="display:none">
+      <h2>5. PRD final</h2>
+      <div id="prdMeta" class="sub"></div>
+      <div id="prdView" class="md"></div>
+      <div><button class="btn ghost" onclick="show(4)">← Kembali</button>
+      <button class="btn small" onclick="copyPrd()">Salin PRD</button>
+      <button class="btn small" onclick="downloadPrd()">⬇ Unduh .md</button></div>
+    </div>
+
+    <div id="loading" class="loading">⏳ Menghasilkan… tunggu sebentar (biasanya 10–30 detik).</div>
+    <div id="err" class="err"></div>
+  </div>
+  <div class="foot">DocGen·AI Wizard — key 9Router ada di server Vercel, tidak dikirim ke browser. Dokumen tersimpan di browser ini saja.</div>
+</div>
+
+<script>
+const S = {step:1, idea:"", target:"", model:"mangoboost", questions:[], tech:"", workflow:null, prd:""};
+const NAMES = ["1. Ide","2. Klarifikasi","3. Teknologi","4. Workflow","5. PRD"];
+function renderSteps(){
+  document.getElementById("steps").innerHTML = NAMES.map((n,i)=>{
+    const no=i+1, cls = no===S.step ? "step active" : (no<S.step ? "step done" : "step");
+    return `<div class="${cls}">${n}</div>`;
+  }).join("");
+}
+function show(n){
+  S.step=n; renderSteps();
+  for(let i=1;i<=5;i++) document.getElementById("s"+i).style.display = (i===n?"block":"none");
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function setErr(m){ const e=document.getElementById("err"); e.textContent="Error: "+m; e.classList.add("show"); }
+function clearErr(){ document.getElementById("err").classList.remove("show"); }
+function setLoad(v){ document.getElementById("loading").classList.toggle("show", v); }
+function answers(){
+  return S.questions.map((q,i)=>{
+    const radios = document.querySelectorAll(`input[name="q${i}"]:checked`);
+    let a = radios.length ? radios[0].value : "";
+    const custom = document.getElementById("custom"+i).value.trim();
+    if(custom) a = custom;
+    return {q:q.q, a:a};
+  });
+}
+async function callApi(step, extra){
+  const body = {step, idea:S.idea, target:S.target, model:S.model, answers:answers(), tech:S.tech, workflow:S.workflow, ...(extra||{})};
+  const res = await fetch("/api/wizard", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
+  const data = await res.json();
+  if(!res.ok || !data.ok) throw new Error(data.error || "Gagal generate");
+  return data;
+}
+async function goClarify(){
+  clearErr();
+  S.idea = document.getElementById("idea").value.trim();
+  S.target = document.getElementById("target").value.trim();
+  S.model = document.getElementById("model").value;
+  if(!S.idea){ setErr("Isi Ide/Produk dulu."); return; }
+  setLoad(true);
+  try{
+    const data = await callApi("clarify");
+    S.questions = (data.data && data.data.questions) || [];
+    if(!S.questions.length) throw new Error("AI tidak mengembalikan pertanyaan.");
+    document.getElementById("questions").innerHTML = S.questions.map((q,i)=>`
+      <div class="q"><b>${i+1}. ${q.q}</b>
+      ${(q.options||[]).map(o=>`<label><input type="radio" name="q${i}" value="${o.replace(/"/g,"&quot;")}"> ${o}</label>`).join("")}
+      <label style="margin-top:8px">Jawaban sendiri (opsional)</label>
+      <input type="text" id="custom${i}" placeholder="Tulis jawaban sendiri...">
+      </div>`).join("");
+    show(2);
+  }catch(e){ setErr(e.message); }
+  finally{ setLoad(false); }
+}
+async function goWorkflow(){
+  clearErr();
+  const custom = document.getElementById("techCustom").value.trim();
+  S.tech = custom || document.getElementById("tech").value;
+  setLoad(true);
+  try{
+    const data = await callApi("workflow");
+    S.workflow = data.data;
+    const phases = (S.workflow && S.workflow.phases) || [];
+    if(!phases.length) throw new Error("AI tidak mengembalikan peta workflow.");
+    document.getElementById("workflowView").innerHTML = phases.map(p=>`
+      <div class="phase"><h3>${p.name}</h3>
+      ${(p.features||[]).map(f=>`<div class="feat"><b>${f.name} <span class="badge">Direncanakan</span></b>
+        ${(f.sub||[]).map(x=>`<div><span>• ${x}</span></div>`).join("")}</div>`).join("")}
+      </div>`).join("");
+    show(4);
+  }catch(e){ setErr(e.message); }
+  finally{ setLoad(false); }
+}
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function renderMD(src){
+  let s = esc(src).replace(/\r\n/g,"\n");
+  s = s.replace(/```(\w*)\n([\s\S]*?)```/g, (m,lang,code)=>`<pre><code>${code.trim()}</code></pre>`);
+  s = s.replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  s = s.replace(/^### (.*)$/gm, '<h3>$1</h3>');
+  s = s.replace(/^## (.*)$/gm, '<h2>$1</h2>');
+  s = s.replace(/^# (.*)$/gm, '<h1>$1</h1>');
+  s = s.replace(/^---\s*$/gm, '<hr>');
+  s = s.replace(/^\s*[-*+] (.*)$/gm, '<li>$1</li>');
+  s = s.replace(/^\s*\d+\. (.*)$/gm, '<li>$1</li>');
+  s = s.replace(/(<li>[\s\S]*?<\/li>)(\n<li>[\s\S]*?<\/li>)*/gm, m=>'<ul>'+m+'</ul>');
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  s = s.replace(/\n{2,}/g, '</p><p>');
+  return '<p>'+s+'</p>';
+}
+async function goPrd(){
+  clearErr(); setLoad(true);
+  try{
+    const data = await callApi("prd");
+    S.prd = data.content || "";
+    if(!S.prd) throw new Error("AI tidak mengembalikan PRD.");
+    document.getElementById("prdView").innerHTML = renderMD(S.prd);
+    document.getElementById("prdMeta").textContent = "Model: " + S.model + " · Teknologi: " + S.tech;
+    show(5);
+  }catch(e){ setErr(e.message); }
+  finally{ setLoad(false); }
+}
+function workflowText(){
+  if(!S.workflow) return "";
+  return (S.workflow.phases||[]).map(p=>{
+    const feats = (p.features||[]).map(f=>`- ${f.name} (Direncanakan)\n${(f.sub||[]).map(x=>"  - "+x).join("\n")}`).join("\n");
+    return `## ${p.name}\n${feats}`;
+  }).join("\n\n");
+}
+async function copyText(t, okMsg){
+  try{ await navigator.clipboard.writeText(t); alert(okMsg); }
+  catch(e){ const ta=document.createElement("textarea"); ta.value=t; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); alert(okMsg); }
+}
+function copyPrd(){ copyText(S.prd, "PRD disalin ✓"); }
+function copyWorkflow(){ copyText(workflowText(), "Workflow disalin ✓"); }
+function downloadPrd(){
+  const blob = new Blob([S.prd], {type:"text/markdown"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "prd.md"; a.click();
+}
+renderSteps();
+</script>
+</body>
+</html>
