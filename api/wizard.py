@@ -173,10 +173,9 @@ class handler(BaseHTTPRequestHandler):
         if not (data.get("idea") or "").strip():
             self._send(400, {"error": "idea wajib diisi"})
             return
-        model = (data.get("model") or "").strip() or "mangoboost"
+        model = (data.get("model") or "").strip() or "ilabs"
         try:
-            raw = _call(build_prompt(step, data),
-                        model, 4096 if step == "prd" else 2048)
+            raw = _call(build_prompt(step, data), model, 4096)
             if step == "prd":
                 self._send(200, {"ok": True, "step": step, "content": raw})
             else:
