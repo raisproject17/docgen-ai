@@ -2,6 +2,17 @@
 
 Generate dokumen produk berbasis LLM.
 
+## Wizard PRD & Workflow (baru, ala NgodingPakeAI)
+
+Halaman `wizard.html` (ditautkan dari halaman utama):
+Ide → 8 pertanyaan klarifikasi (AI, bisa dijawab / "Tidak tahu, bantu
+pilihkan") → pilih teknologi (atau "Bantu saya pilih teknologi") →
+peta workflow 3-4 fase dengan status Direncanakan → PRD final yang
+konsisten dengan jawaban + teknologi + workflow, bisa disalin dan diunduh
+`.md`. Backend-nya `api/wizard.py` (step `clarify` / `workflow` / `prd`),
+hanya pakai key 9Router auto dari env var Vercel — tanpa paywall, tanpa
+upload referensi berbayar (fitur itu memang tidak ada di wizard ini).
+
 ## Vercel (live)
 
 - Frontend: `index.html` di root (disajikan statis oleh Vercel).
