@@ -59,8 +59,8 @@ textarea{min-height:110px;resize:vertical}
       <input type="text" id="target" placeholder="mis. UMKM di Jabodetabek">
       <label>Model 9Router</label>
       <select id="model">
-        <option value="mangoboost" selected>mangoboost (DeepSeek)</option>
-        <option value="ilabs">ilabs (Mercury 3)</option>
+        <option value="mangoboost">mangoboost (DeepSeek)</option>
+        <option value="ilabs" selected>ilabs (Mercury 3)</option>
         <option value="gonka">gonka (MiniMax)</option>
         <option value="gonka-ds">gonka-ds (DeepSeek)</option>
         <option value="okai">okai</option>
@@ -123,7 +123,7 @@ textarea{min-height:110px;resize:vertical}
 </div>
 
 <script>
-const S = {step:1, idea:"", target:"", model:"mangoboost", questions:[], tech:"", workflow:null, prd:""};
+const S = {step:1, idea:"", target:"", model:"ilabs", questions:[], tech:"", workflow:null, prd:""};
 const NAMES = ["1. Ide","2. Klarifikasi","3. Teknologi","4. Workflow","5. PRD"];
 function renderSteps(){
   document.getElementById("steps").innerHTML = NAMES.map((n,i)=>{
